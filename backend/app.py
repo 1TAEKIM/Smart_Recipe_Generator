@@ -1,15 +1,18 @@
 import os
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_bcrypt import Bcrypt
 from flask_session import Session
 from flask_cors import CORS
 from dotenv import load_dotenv
+from datetime import timedelta
+from backend.extensions import db, bcrypt  # extensions에서 가져옴
+
+
 
 # 환경 변수 로드
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
 
 # 환경 변수에서 DB 정보 가져오기
 DB_USERNAME = os.getenv('DB_USERNAME')
@@ -25,15 +28,26 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # 세션 설정
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SECRET_KEY'] = os.urandom(24)
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 
 # 초기화
-db = SQLAlchemy(app)
-bcrypt = Bcrypt(app)
+db.init_app(app)
+bcrypt.init_app(app)
 Session(app)
 
-CORS(app)
+# 경로에서 처리할 모든 라우트를 import
+from backend.routes import register_routes
+import logging
+from logging import FileHandler
 
-from routes import *
+file_handler = FileHandler('errorlog.txt')
+file_handler.setLevel(logging.WARNING)
+app.logger.addHandler(file_handler)
+
+# Routes 등록
+register_routes(app)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
