@@ -1,14 +1,14 @@
 from flask import request, jsonify, session
-from .models import User
+from .models import User, Recipe  # Assuming you have a Recipe model
 from .extensions import db
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import timedelta
 
 def register_routes(app):
-    # 세션 만료 시간 설정
+    # Session timeout settings
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 
-    # 회원가입
+    # Register user
     @app.route('/register', methods=['POST', 'OPTIONS'])
     def register():
         if request.method == 'OPTIONS':
@@ -18,7 +18,6 @@ def register_routes(app):
             response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
             response.headers.add("Access-Control-Allow-Credentials", "true")
             return response
-
 
         data = request.get_json()
         username = data['username']
@@ -40,8 +39,7 @@ def register_routes(app):
             db.session.rollback()
             return jsonify({'message': 'Error occurred during registration'}), 500
 
-    # 로그인
-    # 로그인 경로 수정
+    # Login user
     @app.route('/login', methods=['POST', 'OPTIONS'])
     def login():
         if request.method == 'OPTIONS':
@@ -66,14 +64,14 @@ def register_routes(app):
         else:
             return jsonify({'message': 'Invalid credentials'}), 401
 
-    # 로그아웃
+    # Logout user
     @app.route('/logout', methods=['POST'])
     def logout():
         session.pop('user_id', None)
         session.pop('username', None)
         return jsonify({'message': 'Logged out successfully'}), 200
 
-    # 메인 페이지 (로그인 여부 확인)
+    # Main page: Check if user is logged in
     @app.route('/main', methods=['GET'])
     def main_page():
         if 'username' in session:
@@ -81,3 +79,21 @@ def register_routes(app):
             return jsonify({'username': username}), 200
         else:
             return jsonify({'message': 'No user logged in'}), 401
+
+    # Get recipe data with pagination
+    @app.route('/api/recipes', methods=['GET'])
+    def get_recipes():
+        page = int(request.args.get('page', 1))
+        size = int(request.args.get('size', 9))  # 페이지당 항목 수
+        offset = (page - 1) * size
+
+        # 음식 데이터를 DB에서 가져오기 (필요한 칼럼에 맞춰 조정)
+        recipes = Recipe.query.offset(offset).limit(size).all()
+        total_items = Recipe.query.count()
+
+        result = {
+            "recipes": [{"rcp_nm": r.rcp_nm, "att_file_no_main": r.att_file_no_main} for r in recipes],
+            "total_pages": (total_items + size - 1) // size
+        }
+
+        return jsonify(result)
