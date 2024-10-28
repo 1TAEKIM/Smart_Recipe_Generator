@@ -11,3 +11,18 @@ class User(db.Model):
 
     def check_password(self, password):
         return bcrypt.check_password_hash(self.password, password)
+
+
+class Recipe(db.Model):
+    __tablename__ = 'rcp_set'
+
+    id = db.Column(db.Integer, primary_key=True)
+    rcp_nm = db.Column(db.Text, nullable=False)  # 레시피 이름
+    att_file_no_main = db.Column(db.Text, nullable=True)  # 메인 이미지 URL
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'rcp_nm': self.rcp_nm,
+            'att_file_no_main': self.att_file_no_main
+        }
