@@ -84,7 +84,7 @@ def register_routes(app):
     @app.route('/api/recipes', methods=['GET'])
     def get_recipes():
         page = int(request.args.get('page', 1))
-        size = int(request.args.get('size', 9))  # 페이지당 항목 수
+        size = int(request.args.get('size', 12))  # 페이지당 항목 수
         offset = (page - 1) * size
 
         # 음식 데이터를 DB에서 가져오기 (필요한 칼럼에 맞춰 조정)
