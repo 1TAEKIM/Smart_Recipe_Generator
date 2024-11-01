@@ -23,8 +23,8 @@ class CompletionExecutor:
 
     def execute(self, completion_request):
         headers = {
-            'X-NCP-CLOVASTUDIO-API-KEY': 'NTA0MjU2MWZlZTcxNDJiY/Rz0blcyYDXAHHK0pd7FU+mjPX7dpIfrHPnhogABuMZ',
-            'X-NCP-APIGW-API-KEY': 'RMk0wbVjbcbtkoMAKlObP2XfOgpQNiJBLXUNozgq',
+            'X-NCP-CLOVASTUDIO-API-KEY': self._api_key,
+            'X-NCP-APIGW-API-KEY': self._api_key_primary_val,
             'X-NCP-CLOVASTUDIO-REQUEST-ID': self._request_id,
             'Content-Type': 'application/json; charset=utf-8',
             # 'Accept': 'text/event-stream'
@@ -151,8 +151,8 @@ def register_routes(app):
         # Setup Clova X Executor
         completion_executor = CompletionExecutor(
             host='https://clovastudio.stream.ntruss.com',
-            api_key='NTA0MjU2MWZlZTcxNDJiY/Rz0blcyYDXAHHK0pd7FU+mjPX7dpIfrHPnhogABuMZ',
-            api_key_primary_val='RMk0wbVjbcbtkoMAKlObP2XfOgpQNiJBLXUNozgq',
+            api_key=os.getenv('CLOVA_X_API_KEY'),
+            api_key_primary_val=os.getenv('CLOVA_X_API_KEY_PRIMARY_VAL'),
             request_id='cf44e176ce2641a683767d7093e7476a'
         )
 
