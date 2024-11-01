@@ -1,0 +1,55 @@
+/* Container for the register page */
+.register-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 100vh;  /* Full height */
+}
+
+/* Styling for the register form content */
+.register-content {
+  width: 100%;
+  max-width: 450px;
+  margin: 50px auto;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 제목 스타일 */
+.register-content h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 24px;
+}
+
+/* 폼 필드 스타일 */
+.register-content form {
+  display: flex;
+  flex-direction: column;
+}
+
+.register-content input {
+  margin-bottom: 15px;
+  padding: 12px;
+  font-size: 16px;
+  border: 1px solid #ced4da;
+  border-radius: 5px;
+}
+
+/* 버튼 스타일 */
+.register-content button {
+  padding: 12px;
+  font-size: 18px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.register-content button:hover {
+  background-color: #0056b3;
+}
