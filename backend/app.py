@@ -5,8 +5,9 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from datetime import timedelta
 from backend.extensions import db, bcrypt  # extensions에서 가져옴
-
-
+from flask_migrate import Migrate  # 마이그레이션 모듈 추가
+import logging
+from logging import FileHandler
 
 # 환경 변수 로드
 load_dotenv()
@@ -37,11 +38,14 @@ db.init_app(app)
 bcrypt.init_app(app)
 Session(app)
 
+# Flask-Migrate 초기화
+# 마이그레이션 설정 추가
+migrate = Migrate(app, db)
+
 # 경로에서 처리할 모든 라우트를 import
 from backend.routes import register_routes
-import logging
-from logging import FileHandler
 
+# 로깅 설정
 file_handler = FileHandler('errorlog.txt')
 file_handler.setLevel(logging.WARNING)
 app.logger.addHandler(file_handler)
