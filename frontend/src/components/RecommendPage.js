@@ -39,7 +39,7 @@ const RecommendPage = () => {
 
   const fetchUserData = async () => {
     try {
-      const response = await axios.get('http://reciperecom.store/main', {
+      const response = await axios.get('http://reciperecom.store/api/main', {
         withCredentials: true,
       });
       if (response.data.username) {
@@ -52,7 +52,7 @@ const RecommendPage = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post('http://reciperecom.store/logout', {}, { withCredentials: true });
+      await axios.post('http://reciperecom.store/api/logout', {}, { withCredentials: true });
       setUsername(null);
       navigate('/main');
     } catch (error) {

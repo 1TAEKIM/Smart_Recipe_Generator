@@ -21,7 +21,7 @@ const MyPage = () => {
     useEffect(() => {
         const fetchUserInfo = async () => {
             try {
-                const response = await axios.get('http://reciperecom.store/main', { withCredentials: true });
+                const response = await axios.get('http://reciperecom.store/api/main', { withCredentials: true });
                 setUserInfo(response.data);
             } catch (error) {
                 console.error('Error fetching user info:', error);
@@ -50,7 +50,7 @@ const MyPage = () => {
     const handleUpdate = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.put('http://reciperecom.store/update-user', {
+            const response = await axios.put('http://reciperecom.store/api/update-user', {
                 favoriteFood: userInfo.favoriteFood,
                 spiceLevel: userInfo.spiceLevel
             }, { withCredentials: true });
@@ -69,7 +69,7 @@ const MyPage = () => {
             return;
         }
         try {
-            const response = await axios.post('http://reciperecom.store/change-password', {
+            const response = await axios.post('http://reciperecom.store/api/change-password', {
                 newPassword: userInfo.newPassword
             }, { withCredentials: true });
             setSuccess(response.data.message);
@@ -82,7 +82,7 @@ const MyPage = () => {
 
     const handleLogout = async () => {
         try {
-            await axios.post('http://reciperecom.store/logout', {}, { withCredentials: true });
+            await axios.post('http://reciperecom.store/api/logout', {}, { withCredentials: true });
             navigate('/main');
         } catch (error) {
             console.error('Error logging out:', error);

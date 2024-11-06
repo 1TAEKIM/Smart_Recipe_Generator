@@ -16,7 +16,7 @@ const Login = ({ setIsLoggedIn }) => {
         e.preventDefault();
 
         try {
-            const response = await fetch('http://reciperecom.store/login', {
+            const response = await fetch('http://reciperecom.store/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',

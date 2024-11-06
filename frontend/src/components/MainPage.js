@@ -19,7 +19,7 @@ const MainPage = () => {
 
     const fetchUserData = async () => {
         try {
-            const response = await fetch('http://reciperecom.store/main', {
+            const response = await fetch('http://reciperecom.store/api/main', {
                 method: 'GET',
                 credentials: 'include',
             });
@@ -50,7 +50,7 @@ const MainPage = () => {
     }, [fetchRecipes]);
 
     const handleLogout = async () => {
-        const response = await fetch('http://reciperecom.store/logout', {
+        const response = await fetch('http://reciperecom.store/api/logout', {
             method: 'POST',
             credentials: 'include',
         });
