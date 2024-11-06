@@ -21,7 +21,7 @@ const MyPage = () => {
     useEffect(() => {
         const fetchUserInfo = async () => {
             try {
-                const response = await axios.get('http://localhost:5001/main', { withCredentials: true });
+                const response = await axios.get('http://reciperecom.store/main', { withCredentials: true });
                 setUserInfo(response.data);
             } catch (error) {
                 console.error('Error fetching user info:', error);
@@ -31,7 +31,7 @@ const MyPage = () => {
 
         const getConversations = async () => {
             try {
-                const response = await axios.get('http://localhost:5001/api/conversations', { withCredentials: true });
+                const response = await axios.get('http://reciperecom.store/api/conversations', { withCredentials: true });
                 setConversations(response.data.conversations);
             } catch (error) {
                 console.error('Error fetching conversations:', error);
@@ -50,7 +50,7 @@ const MyPage = () => {
     const handleUpdate = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.put('http://localhost:5001/update-user', {
+            const response = await axios.put('http://reciperecom.store/update-user', {
                 favoriteFood: userInfo.favoriteFood,
                 spiceLevel: userInfo.spiceLevel
             }, { withCredentials: true });
@@ -69,7 +69,7 @@ const MyPage = () => {
             return;
         }
         try {
-            const response = await axios.post('http://localhost:5001/change-password', {
+            const response = await axios.post('http://reciperecom.store/change-password', {
                 newPassword: userInfo.newPassword
             }, { withCredentials: true });
             setSuccess(response.data.message);
@@ -82,7 +82,7 @@ const MyPage = () => {
 
     const handleLogout = async () => {
         try {
-            await axios.post('http://localhost:5001/logout', {}, { withCredentials: true });
+            await axios.post('http://reciperecom.store/logout', {}, { withCredentials: true });
             navigate('/main');
         } catch (error) {
             console.error('Error logging out:', error);
@@ -91,7 +91,7 @@ const MyPage = () => {
 
     const handleDeleteConversation = async (id) => {
         try {
-            await axios.delete(`http://localhost:5001/api/conversation/${id}`, { withCredentials: true });
+            await axios.delete(`http://reciperecom.store/api/conversation/${id}`, { withCredentials: true });
             setConversations(conversations.filter((conv) => conv.id !== id));
         } catch (error) {
             console.error('Error deleting conversation:', error);

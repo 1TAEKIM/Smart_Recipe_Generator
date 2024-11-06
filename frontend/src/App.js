@@ -17,7 +17,7 @@ function App() {
   // 로그인 상태 확인 함수
   const checkLoginStatus = async () => {
     try {
-      const response = await axios.get(`http://localhost:5001/main`, { withCredentials: true });
+      const response = await axios.get(`http://reciperecom.store/main`, { withCredentials: true });
       if (response.status === 200 && response.data.username) {
         setIsLoggedIn(true);
       } else {

@@ -39,7 +39,7 @@ const RecommendPage = () => {
 
   const fetchUserData = async () => {
     try {
-      const response = await axios.get('http://localhost:5001/main', {
+      const response = await axios.get('http://reciperecom.store/main', {
         withCredentials: true,
       });
       if (response.data.username) {
@@ -52,7 +52,7 @@ const RecommendPage = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post('http://localhost:5001/logout', {}, { withCredentials: true });
+      await axios.post('http://reciperecom.store/logout', {}, { withCredentials: true });
       setUsername(null);
       navigate('/main');
     } catch (error) {
@@ -74,7 +74,7 @@ const RecommendPage = () => {
     setIsTyping(true);
 
     try {
-      const response = await axios.post('http://localhost:5001/api/chat', {
+      const response = await axios.post('http://reciperecom.store/api/chat', {
         message: messageText,
       });
       const botMessage = {
@@ -99,7 +99,7 @@ const RecommendPage = () => {
     }
 
     try {
-      await axios.post('http://localhost:5001/api/save-conversation', {
+      await axios.post('http://reciperecom.store/api/save-conversation', {
         messages,
       }, { withCredentials: true });
       console.log('Conversation saved with Summary');

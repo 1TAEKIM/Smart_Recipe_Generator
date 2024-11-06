@@ -15,7 +15,7 @@ const RecipeDetails = () => {
         // Fetch user data to check login status
         const fetchUserData = async () => {
             try {
-                const response = await fetch('http://localhost:5001/main', {
+                const response = await fetch('http://reciperecom.store/main', {
                     method: 'GET',
                     credentials: 'include',
                 });
@@ -28,7 +28,7 @@ const RecipeDetails = () => {
 
         const fetchRecipeDetails = async () => {
             try {
-                const response = await fetch(`http://localhost:5001/api/recipe/${recipe_id}`);
+                const response = await fetch(`http://reciperecom.store/api/recipe/${recipe_id}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch recipe details');
                 }
@@ -50,7 +50,7 @@ const RecipeDetails = () => {
     };
 
     const handleLogout = async () => {
-        const response = await fetch('http://localhost:5001/logout', {
+        const response = await fetch('http://reciperecom.store/logout', {
             method: 'POST',
             credentials: 'include',
         });

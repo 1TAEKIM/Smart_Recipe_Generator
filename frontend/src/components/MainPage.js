@@ -19,7 +19,7 @@ const MainPage = () => {
 
     const fetchUserData = async () => {
         try {
-            const response = await fetch('http://localhost:5001/main', {
+            const response = await fetch('http://reciperecom.store/main', {
                 method: 'GET',
                 credentials: 'include',
             });
@@ -33,7 +33,7 @@ const MainPage = () => {
     const fetchRecipes = useCallback(async () => {
         setIsLoading(true);
         try {
-            const response = await fetch(`http://localhost:5001/api/recipes?page=${currentPage}&limit=${itemsPerPage}&category=${selectedCategory}`);
+            const response = await fetch(`http://reciperecom.store/api/recipes?page=${currentPage}&limit=${itemsPerPage}&category=${selectedCategory}`);
             const data = await response.json();
             const shuffledRecipes = data.recipes.sort(() => 0.5 - Math.random());
             setRecipes(shuffledRecipes);
@@ -50,7 +50,7 @@ const MainPage = () => {
     }, [fetchRecipes]);
 
     const handleLogout = async () => {
-        const response = await fetch('http://localhost:5001/logout', {
+        const response = await fetch('http://reciperecom.store/logout', {
             method: 'POST',
             credentials: 'include',
         });

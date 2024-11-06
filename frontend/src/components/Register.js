@@ -28,7 +28,7 @@ const Register = () => {
     const checkUsernameAvailability = async () => {
         if (username) {
             try {
-                const response = await axios.get(`http://localhost:5001/check-username?username=${username}`);
+                const response = await axios.get(`http://reciperecom.store/check-username?username=${username}`);
                 setIsUsernameAvailable(response.data.available);
             } catch (error) {
                 console.error('Error checking username availability:', error);
@@ -50,7 +50,7 @@ const Register = () => {
         e.preventDefault();
 
         try {
-            const response = await axios.post('http://localhost:5001/register', {
+            const response = await axios.post('http://reciperecom.store/register', {
                 username,
                 email,
                 password,
