@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Spinner, Button, Card, Pagination, Navbar, Container, Row, Col } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import logo from '../assets/images/logo.png'; // 로고 이미지 경로
+import logo from '../assets/images/logo.png';
+
+const categories = ['반찬', '국과찌개', '후식', '일품', '밥', '기타'];
 
 const MainPage = () => {
     const [username, setUsername] = useState(null);
     const [recipes, setRecipes] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [isLoading, setIsLoading] = useState(true); // 로딩 상태 추가
-    const itemsPerPage = 12; // 한 페이지당 12개의 레시피 표시
+    const [isLoading, setIsLoading] = useState(true);
+    const [selectedCategory, setSelectedCategory] = useState('');
+    const itemsPerPage = 12;
+    const pagesToShow = 6;
     const navigate = useNavigate();
-
-    useEffect(() => {
-        fetchUserData();
-        fetchRecipes();
-    }, [currentPage]);
 
     const fetchUserData = async () => {
         try {
@@ -24,28 +24,30 @@ const MainPage = () => {
                 credentials: 'include',
             });
             const data = await response.json();
-            if (data.username) {
-                setUsername(data.username);
-            }
+            setUsername(data.username || null);
         } catch (error) {
             console.error('Error fetching user data:', error);
         }
     };
 
-    const fetchRecipes = async () => {
-        setIsLoading(true); // 데이터 가져오기 시작할 때 로딩 상태 활성화
+    const fetchRecipes = useCallback(async () => {
+        setIsLoading(true);
         try {
-            const response = await fetch(`http://localhost:5001/api/recipes?page=${currentPage}&limit=${itemsPerPage}`);
+            const response = await fetch(`http://localhost:5001/api/recipes?page=${currentPage}&limit=${itemsPerPage}&category=${selectedCategory}`);
             const data = await response.json();
-            const shuffledRecipes = data.recipes.sort(() => 0.5 - Math.random()); // 레시피 데이터를 무작위로 섞음
-            setRecipes(shuffledRecipes);  // 무작위로 섞인 데이터를 상태에 설정
+            const shuffledRecipes = data.recipes.sort(() => 0.5 - Math.random());
+            setRecipes(shuffledRecipes);
             setTotalPages(data.total_pages);
         } catch (error) {
             console.error('Error fetching recipes:', error);
         }
-        setIsLoading(false); // 데이터 가져오기가 끝나면 로딩 상태 비활성화
-    };
-    
+        setIsLoading(false);
+    }, [currentPage, selectedCategory]);
+
+    useEffect(() => {
+        fetchUserData();
+        fetchRecipes();
+    }, [fetchRecipes]);
 
     const handleLogout = async () => {
         const response = await fetch('http://localhost:5001/logout', {
@@ -58,89 +60,106 @@ const MainPage = () => {
         }
     };
 
-    const handlePageChange = (pageNumber) => {
-        setCurrentPage(pageNumber);
+    const handleCategoryChange = (category) => {
+        setSelectedCategory(category);
+        setCurrentPage(1);
+    };
+
+    const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
+
+    const getPaginationItems = () => {
+        const items = [];
+        const start = Math.floor((currentPage - 1) / pagesToShow) * pagesToShow + 1;
+        const end = Math.min(start + pagesToShow - 1, totalPages);
+        for (let pageNumber = start; pageNumber <= end; pageNumber++) {
+            items.push(
+                <Pagination.Item key={pageNumber} active={pageNumber === currentPage} onClick={() => handlePageChange(pageNumber)}>
+                    {pageNumber}
+                </Pagination.Item>
+            );
+        }
+        return items;
     };
 
     return (
         <div className="main-container">
-            <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
-                <div className="container-fluid">
-                    <Link to="/main" className="navbar-brand">
-                        <img src={logo} alt="Logo" height="40" />
-                    </Link>
-                    <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                        <span className="navbar-toggler-icon"></span>
-                    </button>
-                    <div className="collapse navbar-collapse" id="navbarNav">
-                        <ul className="navbar-nav ms-auto">
-                            {username ? (
-                                <>
-                                    <li className="nav-item">
-                                        <span className="nav-link">Hello, {username}!</span>
-                                    </li>
-                                    {/* '메뉴 추천' 버튼, 로그인한 경우에만 표시 */}
-                                    <li className="nav-item">
-                                        <Link to="/recommend" className="nav-link">메뉴 추천</Link>
-                                    </li>
-                                    <li className="nav-item">
-                                        <button className="nav-link btn btn-link" onClick={handleLogout}>Logout</button>
-                                    </li>
-                                </>
-                            ) : (
-                                <>
-                                    <li className="nav-item">
-                                        <Link to="/login" className="nav-link">Login</Link>
-                                    </li>
-                                    <li className="nav-item">
-                                        <Link to="/register" className="nav-link">Register</Link>
-                                    </li>
-                                </>
-                            )}
-                        </ul>
-                    </div>
+            <Navbar bg="dark" variant="dark" expand="lg">
+                <Container>
+                    <Navbar.Brand as={Link} to="/main" onClick={() => window.location.reload()} style={{ height: '100%' }}>
+                        <img src={logo} alt="Logo" style={{ height: '40px' }} />
+                    </Navbar.Brand>
+
+                    <Navbar.Toggle aria-controls="navbarNav" />
+                    <Navbar.Collapse id="navbarNav" className="justify-content-end text-end">
+                        <Navbar.Text className="text-white me-3">
+                            {username ? `Hello, ${username}!` : 'Hello, Guest!'}
+                        </Navbar.Text>
+                        {username ? (
+                            <>
+                                <Button as={Link} to="/mypage" variant="outline-light" className="me-2">마이 페이지</Button>
+                                <Button as={Link} to="/recommend" variant="outline-light" className="me-2">메뉴 추천</Button>
+                                <Button variant="outline-light" onClick={handleLogout}>로그아웃</Button>
+                            </>
+                        ) : (
+                            <>
+                                <Button as={Link} to="/login" variant="outline-light" className="me-2">로그인</Button>
+                                <Button as={Link} to="/register" variant="outline-light">회원가입</Button>
+                            </>
+                        )}
+                    </Navbar.Collapse>
+                </Container>
+            </Navbar>
+
+            <Container className="my-4 text-center">
+                <h1 className="mb-4">
+                    <span style={{ fontSize: '3rem', color: '#FF6347' }}>레</span>시피{' '}
+                    <span style={{ fontSize: '3rem', color: '#FF6347' }}>알</span>려줘?
+                </h1>
+
+                <div className="d-flex justify-content-center mb-4">
+                    {categories.map((category) => (
+                        <Button
+                            key={category}
+                            variant={selectedCategory === category ? 'primary' : 'outline-primary'}
+                            className="mx-1"
+                            onClick={() => handleCategoryChange(category)}
+                        >
+                            {category}
+                        </Button>
+                    ))}
                 </div>
-            </nav>
 
-            <div className="main-content text-center mt-5">
-                <h1>Welcome to the Main Page</h1>
-                {username ? <h2>Hello, {username}!</h2> : <h2>Hello, Guest!</h2>}
-
-                {/* 로딩 상태를 체크하고, 로딩 중이면 스피너 표시 */}
                 {isLoading ? (
-                    <div className="spinner-border" role="status">
-                        <span className="sr-only">Loading...</span>
+                    <div className="text-center my-5">
+                        <Spinner animation="border" role="status">
+                            <span className="visually-hidden">Loading...</span>
+                        </Spinner>
                     </div>
                 ) : (
-                    <div className="container">
-                        <div className="row">
-                            {recipes.map((recipe, index) => (
-                                <div key={index} className="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
-                                    <div className="card">
-                                        <img src={recipe.att_file_no_main} alt={recipe.rcp_nm} className="card-img-top" />
-                                        <div className="card-body">
-                                            <h5 className="card-title">{recipe.rcp_nm}</h5>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+                    <Row>
+                        {recipes.map((recipe) => (
+                            <Col key={recipe.id} xs={12} sm={6} md={4} lg={3} className="mb-4">
+                                <Card as={Link} to={`/recipe/${recipe.id}`} className="h-100 shadow-sm">
+                                    <Card.Img variant="top" src={recipe.att_file_no_main} alt={recipe.rcp_nm} />
+                                    <Card.Body className="d-flex flex-column">
+                                        <Card.Title className="text-center">{recipe.rcp_nm}</Card.Title>
+                                    </Card.Body>
+                                </Card>
+                            </Col>
+                        ))}
+                    </Row>
                 )}
 
-                {/* Pagination Controls */}
-                <nav>
-                    <ul className="pagination justify-content-center">
-                        {Array.from({ length: totalPages }, (_, i) => (
-                            <li key={i} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
-                                <button className="page-link" onClick={() => handlePageChange(i + 1)}>
-                                    {i + 1}
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
-                </nav>
-            </div>
+                <Pagination className="justify-content-center mt-4">
+                    {currentPage > pagesToShow && (
+                        <Pagination.Prev onClick={() => handlePageChange(currentPage - 1)} />
+                    )}
+                    {getPaginationItems()}
+                    {currentPage < totalPages && (
+                        <Pagination.Next onClick={() => handlePageChange(currentPage + 1)} />
+                    )}
+                </Pagination>
+            </Container>
         </div>
     );
 };

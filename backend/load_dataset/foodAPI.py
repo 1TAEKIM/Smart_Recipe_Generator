@@ -22,7 +22,7 @@ API_KEY = os.getenv('FOOD_API_KEY')
 service_id = "COOKRCP01"
 data_type = "json"
 start_idx = 1
-end_idx = 1124
+end_idx = 1000
 
 # API 호출 URL 구성
 api_url = f"http://openapi.foodsafetykorea.go.kr/api/{API_KEY}/{service_id}/{data_type}/{start_idx}/{end_idx}"
