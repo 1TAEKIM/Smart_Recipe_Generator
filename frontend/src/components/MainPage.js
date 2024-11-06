@@ -17,6 +17,7 @@ const MainPage = () => {
     const pagesToShow = 6;
     const navigate = useNavigate();
 
+    // 사용자 데이터 가져오기
     const fetchUserData = async () => {
         try {
             const response = await fetch('http://reciperecom.store/api/main', {
@@ -30,13 +31,13 @@ const MainPage = () => {
         }
     };
 
+    // 레시피 데이터 가져오기
     const fetchRecipes = useCallback(async () => {
         setIsLoading(true);
         try {
             const response = await fetch(`http://reciperecom.store/api/recipes?page=${currentPage}&limit=${itemsPerPage}&category=${selectedCategory}`);
             const data = await response.json();
-            const shuffledRecipes = data.recipes.sort(() => 0.5 - Math.random());
-            setRecipes(shuffledRecipes);
+            setRecipes(data.recipes.sort(() => 0.5 - Math.random())); // 데이터 셔플링
             setTotalPages(data.total_pages);
         } catch (error) {
             console.error('Error fetching recipes:', error);
@@ -44,11 +45,17 @@ const MainPage = () => {
         setIsLoading(false);
     }, [currentPage, selectedCategory]);
 
+    // 페이지 로드 시 사용자 데이터 가져오기
     useEffect(() => {
         fetchUserData();
+    }, []);
+
+    // 페이지 번호나 카테고리가 변경될 때만 레시피 데이터를 가져오기
+    useEffect(() => {
         fetchRecipes();
     }, [fetchRecipes]);
 
+    // 로그아웃 기능
     const handleLogout = async () => {
         const response = await fetch('http://reciperecom.store/api/logout', {
             method: 'POST',
@@ -60,13 +67,16 @@ const MainPage = () => {
         }
     };
 
+    // 카테고리 변경 처리
     const handleCategoryChange = (category) => {
         setSelectedCategory(category);
-        setCurrentPage(1);
+        setCurrentPage(1); // 카테고리를 변경하면 첫 페이지로 이동
     };
 
+    // 페이지 변경 처리
     const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
 
+    // Pagination 구성
     const getPaginationItems = () => {
         const items = [];
         const start = Math.floor((currentPage - 1) / pagesToShow) * pagesToShow + 1;
