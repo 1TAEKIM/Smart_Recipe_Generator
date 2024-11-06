@@ -13,7 +13,7 @@ from logging import FileHandler
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {["http://reciperecom.store", "https://reciperecom.store"]}}, supports_credentials=True)
+CORS(app, resources={r"/*": {"origin": ["http://reciperecom.store"]}}, supports_credentials=True)
 
 # 환경 변수에서 DB 정보 가져오기
 DB_USERNAME = os.getenv('DB_USERNAME')
@@ -29,8 +29,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # 세션 설정
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SECRET_KEY'] = os.urandom(24)
-app.config['SESSION_COOKIE_SAMESITE'] = 'None'
-app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = False
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 
 # 초기화
@@ -46,9 +46,9 @@ migrate = Migrate(app, db)
 from backend.routes import register_routes
 
 # 로깅 설정
-file_handler = FileHandler('errorlog.txt')
-file_handler.setLevel(logging.WARNING)
-app.logger.addHandler(file_handler)
+# file_handler = FileHandler('errorlog.txt')
+# file_handler.setLevel(logging.WARNING)
+# app.logger.addHandler(file_handler)
 
 # Routes 등록
 register_routes(app)

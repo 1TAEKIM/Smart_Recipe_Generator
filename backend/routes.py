@@ -35,14 +35,11 @@ class CompletionExecutor:
         }
     
         response = requests.post(self._host + '/testapp/v1/chat-completions/HCX-DASH-001', headers=headers, json=completion_request)
-         # Collect each line of the streamed response
-        # 버퍼를 초기화하여 응답 데이터를 쌓기
-        # 바로 JSON 파싱 시도
+        
         try:
             response_data = response.json()
             return response_data
         except json.JSONDecodeError:
-            # JSON 파싱 실패 시 에러 메시지 반환
             return {"error": "Failed to parse JSON from response", "raw_data": response.text}
         
         
@@ -65,9 +62,9 @@ class SummaryExecutor:
                 "content": content  # 요약할 텍스트
             },
             "option": {
-                "language": "ko",       # 요약할 언어 설정 (한국어: ko)
-                "model": "general",     # 요약 모델 설정 (일반 텍스트: general)
-                "tone": 2,              # 요약 톤 설정 (예: 2는 간결한 톤)
+                "language": "ko",       # 요약할 언어 설정 
+                "model": "general",     # 요약 모델 설정 
+                "tone": 2,              # 요약 톤 설정 
                 "summaryCount": 1       # 요약할 문장 수
             }
         }
@@ -78,12 +75,12 @@ class SummaryExecutor:
             json=payload
         )
 
-        # 응답 코드 확인 및 요약 텍스트 반환
+        
         if response.status_code == 200:
             return response.json().get("summary", "요약 실패")
         else:
-            # 에러 코드와 에러 메시지 출력
-            print(f"Error: {response.status_code}, Response: {response.text}")
+        
+            # print(f"Error: {response.status_code}, Response: {response.text}")
             return f"Error: {response.status_code}"
         
 
@@ -92,7 +89,7 @@ def register_routes(app):
     # Session timeout settings
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
     
-    @app.route('/check-username', methods=['GET'])
+    @app.route('/api/check-username', methods=['GET'])
     def check_username():
         username = request.args.get('username')
         if not username:
@@ -100,7 +97,9 @@ def register_routes(app):
 
         # 해당 유저네임이 이미 존재하는지 확인
         existing_user = User.query.filter_by(username=username).first()
-        is_available = existing_user is None  # None이면 사용 가능
+        
+        # None이면 사용 가능
+        is_available = existing_user is None
 
         return jsonify({'available': is_available}), 200
 
@@ -121,7 +120,7 @@ def register_routes(app):
     
     
     # Register user route
-    @app.route('/register', methods=['POST', 'OPTIONS'])
+    @app.route('/api/register', methods=['POST', 'OPTIONS'])
     def register():
         if request.method == 'OPTIONS':
             response = app.response_class(status=200)
@@ -140,31 +139,31 @@ def register_routes(app):
         username = data.get('username')
         email = data.get('email')
         password = data.get('password')
-        favorite_food = data.get('favoriteFood') or None  # 선택 사항이 비워져 있을 경우 None으로 저장
-        spice_level = data.get('spiceLevel') or None     # 선택 사항이 비워져 있을 경우 None으로 저장
+        favorite_food = data.get('favoriteFood') or None  
+        spice_level = data.get('spiceLevel') or None 
 
-        print(f"Received data: username={username}, email={email}, password={password}, favorite_food={favorite_food}, spice_level={spice_level}")
+        # print(f"Received data: username={username}, email={email}, password={password}, favorite_food={favorite_food}, spice_level={spice_level}")
 
         if not username or not email or not password:
-            print("Error: Required fields missing")
+            # print("Error: Required fields missing")
             return jsonify({'message': 'Username, email, and password are required'}), 400
 
         # 사용자 이름 중복 확인
         existing_user = User.query.filter_by(username=username).first()
         if existing_user:
-            print("Error: User with the same username already exists")
+            # print("Error: User with the same username already exists")
             return jsonify({'message': '동일한 유저가 존재합니다'}), 409
 
         # 이메일 중복 확인 추가
         existing_email = User.query.filter_by(email=email).first()
         if existing_email:
-            print("Error: User with the same email already exists")
+            # print("Error: User with the same email already exists")
             return jsonify({'message': '이미 사용 중인 이메일입니다'}), 409
 
         # 비밀번호 유효성 검사
         password_error = validate_password(password)
         if password_error:
-            print(f"Password validation error: {password_error}")
+            # print(f"Password validation error: {password_error}")
             return jsonify({'message': password_error}), 400
 
         new_user = User(username=username, email=email, favorite_food=favorite_food, spice_level=spice_level)
@@ -181,7 +180,7 @@ def register_routes(app):
             return jsonify({'message': 'Error occurred during registration'}), 500
 
     # Login route
-    @app.route('/login', methods=['POST', 'OPTIONS'])
+    @app.route('/api/login', methods=['POST', 'OPTIONS'])
     def login():
         if request.method == 'OPTIONS':
             response = app.response_class(status=200)
@@ -209,22 +208,13 @@ def register_routes(app):
 
 
     # Logout route
-    @app.route('/logout', methods=['POST'])
+    @app.route('/api/logout', methods=['POST'])
     def logout():
         session.pop('user_id', None)
         session.pop('username', None)
         return jsonify({'message': 'Logged out successfully'}), 200
 
-    # Main page route
-    # @app.route('/main', methods=['GET'])
-    # def main_page():
-    #     if 'username' in session:
-    #         username = session['username']
-    #         return jsonify({'username': username}), 200
-    #     else:
-    #         return jsonify({'message': 'No user logged in'}), 401
-        
-    # Get recipe data with pagination
+    
     # Get recipe data with pagination and category filter
     @app.route('/api/recipes', methods=['GET'])
     def get_recipes():
@@ -245,15 +235,8 @@ def register_routes(app):
         "recipes": [{"id": r.id, "rcp_nm": r.rcp_nm, "att_file_no_main": r.att_file_no_main} for r in recipes],
         "total_pages": (total_items + size - 1) // size
         }
-        # result = {
-        #     "recipes": [{"rcp_nm": r.rcp_nm, "att_file_no_main": r.att_file_no_main} for r in recipes],
-        #     "total_pages": (total_items + size - 1) // size
-        # }
 
         return jsonify(result)
-
-
-
 
 
     @app.route('/api/recipe/<int:recipe_id>', methods=['GET'])
@@ -297,9 +280,6 @@ def register_routes(app):
         
         return jsonify(result)
 
-
-
-        
     
 
     # Clova X Chat Route
@@ -361,67 +341,10 @@ def register_routes(app):
         except Exception as e:
             print("Error in clova_x_chat:", e)
             return jsonify({"error": "An error occurred while processing your request."}), 500
-        
-        
-        
-        
-        
-    # 네이버 음성 인식 API 호출 엔드포인트
-    @app.route('/api/speech-to-text', methods=['POST'])
-    def speech_to_text():
-        if 'audio' not in request.files:
-            return jsonify({"error": "No audio file provided"}), 400
-
-        audio_file = request.files['audio']
-        url = "https://naveropenapi.apigw.ntruss.com/recog/v1/sst"
-        headers = {
-            "X-NCP-APIGW-API-KEY-ID": os.getenv("NAVER_CLIENT_ID"),
-            "X-NCP-APIGW-API-KEY": os.getenv("NAVER_CLIENT_SECRET"),
-            "Content-Type": "application/octet-stream",
-        }
-
-        response = requests.post(url, headers=headers, files={"file": audio_file})
-        if response.status_code == 200:
-            return jsonify(response.json())
-        else:
-            return jsonify({"error": "Failed to process audio"}), response.status_code
-        
-        
-        
-    @app.route('/api/play_voice', methods=['POST'])
-    def play_voice():
-        data = request.get_json()
-        text = data.get('text', '')
-
-        if not text:
-            return jsonify({"error": "No text provided"}), 400
-
-        url = "https://naveropenapi.apigw.ntruss.com/tts-premium/v1/tts"
-        headers = {
-            "X-NCP-APIGW-API-KEY-ID": os.getenv("NAVER_CLIENT_ID"),
-            "X-NCP-APIGW-API-KEY": os.getenv("NAVER_CLIENT_SECRET"),
-            "Content-Type": "application/x-www-form-urlencoded",
-        }
-        payload = {
-            "speaker": "jinho",  # TTS 목소리 설정 (mijin: 여성, jinho: 남성 등)
-            "speed": "2",        # 말하기 속도 조절 (-5 ~ 5)
-            "text": text,
-        }
-        try:
-            response = requests.post(url, headers=headers, data=payload)
-            response.raise_for_status()  # 200 OK가 아닐 경우 예외 발생
-            audio_content = response.content
-
-            # 생성된 음성 파일을 반환
-            return send_file(BytesIO(audio_content), mimetype="audio/mpeg")
-        
-        except requests.exceptions.RequestException as e:
-            print(f"TTS API Error: {e}")
-            return jsonify({"error": "Failed to fetch TTS audio"}), 500
+            
 
 
-
-    @app.route('/main', methods=['GET'])
+    @app.route('/api/main', methods=['GET'])
     def main_page():
         if 'user_id' in session:
             user = User.query.get(session['user_id'])
@@ -436,7 +359,7 @@ def register_routes(app):
         return jsonify({'message': 'No user logged in'}), 401
 
 
-    @app.route('/update-user', methods=['PUT'])
+    @app.route('/api/update-user', methods=['PUT'])
     def update_user():
         if 'user_id' not in session:
             return jsonify({'message': 'Unauthorized'}), 401
@@ -453,7 +376,7 @@ def register_routes(app):
             return jsonify({'message': 'User not found'}), 404
 
 
-    @app.route('/change-password', methods=['POST'])
+    @app.route('/api/change-password', methods=['POST'])
     def change_password():
         if 'user_id' not in session:
             return jsonify({'message': 'Not logged in'}), 401
@@ -468,7 +391,6 @@ def register_routes(app):
             return jsonify({'message': 'Password changed successfully'}), 200
         else:
             return jsonify({'message': 'User not found'}), 404
-
 
 
 
