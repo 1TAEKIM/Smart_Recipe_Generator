@@ -125,7 +125,7 @@ def register_routes(app):
     def register():
         if request.method == 'OPTIONS':
             response = app.response_class(status=200)
-            response.headers.add("Access-Control-Allow-Origin", "http://localhost:3000")
+            response.headers.add("Access-Control-Allow-Origin", "http://reciperecom.store")
             response.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS, GET, DELETE, PUT")
             response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
             response.headers.add("Access-Control-Allow-Credentials", "true")
@@ -185,7 +185,7 @@ def register_routes(app):
     def login():
         if request.method == 'OPTIONS':
             response = app.response_class(status=200)
-            response.headers.add("Access-Control-Allow-Origin", "http://localhost:3000")
+            response.headers.add("Access-Control-Allow-Origin", "http://reciperecom.store")
             response.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
             response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
             response.headers.add("Access-Control-Allow-Credentials", "true")

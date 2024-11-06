@@ -13,7 +13,7 @@ from logging import FileHandler
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
+CORS(app, resources={r"/*": {["http://reciperecom.store", "https://reciperecom.store"]}}, supports_credentials=True)
 
 # 환경 변수에서 DB 정보 가져오기
 DB_USERNAME = os.getenv('DB_USERNAME')
@@ -54,5 +54,5 @@ app.logger.addHandler(file_handler)
 register_routes(app)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
-    # app.run('0.0.0.0', port=5000)
+    # app.run(debug=True, port=5001)
+    app.run('0.0.0.0', port=5000)
