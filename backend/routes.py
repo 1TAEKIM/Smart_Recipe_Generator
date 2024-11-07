@@ -227,7 +227,7 @@ def register_routes(app):
         if category:
             query = query.filter_by(rcp_pat2=category)  # 선택한 카테고리로 필터링
 
-        recipes = query.offset(offset).limit(size).all()
+        recipes = query.with_entities(Recipe.id, Recipe.rcp_nm, Recipe.att_file_no_main).offset(offset).limit(size).all()
         total_items = query.count()
 
         
