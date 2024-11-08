@@ -22,8 +22,11 @@ const RecommendPage = () => {
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [isSaved, setIsSaved] = useState(false); // Track if conversation has been saved
-  const [alreadySavedModal, setAlreadySavedModal] = useState(false); // For "already saved" popup
+  const [isSaved, setIsSaved] = useState(false);
+  const [alreadySavedModal, setAlreadySavedModal] = useState(false);
+  const [isRecording, setIsRecording] = useState(false); // Track recording state
+  const [recordingTimeout, setRecordingTimeout] = useState(null); // Timeout to handle 5 seconds of silence
+  const [isVoiceMode, setIsVoiceMode] = useState(false); // Track if voice mode is enabled
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -74,7 +77,7 @@ const RecommendPage = () => {
     setIsTyping(true);
 
     try {
-      const response = await axios.post('http://reciperecom.store/api/chat', {
+      const response = await axios.post('https://reciperecom.store/api/chat', {
         message: messageText,
       });
       const botMessage = {
@@ -85,6 +88,11 @@ const RecommendPage = () => {
       };
 
       setMessages((prevMessages) => [...prevMessages, botMessage]);
+
+      // 음성 대화 모드가 활성화된 경우에만 TTS 재생
+      if (isVoiceMode) {
+        playVoice(botMessage.message);
+      }
     } catch (error) {
       console.error('Error fetching chat:', error);
     } finally {
@@ -99,7 +107,7 @@ const RecommendPage = () => {
     }
 
     try {
-      await axios.post('http://reciperecom.store/api/save-conversation', {
+      await axios.post('https://reciperecom.store/api/save-conversation', {
         messages,
       }, { withCredentials: true });
       console.log('Conversation saved with Summary');
@@ -118,11 +126,85 @@ const RecommendPage = () => {
     navigate('/mypage');
   };
 
+  // 음성 대화 버튼 클릭 시 녹음 시작 및 5초 후 STT 처리
+  const startVoiceProcess = () => {
+    setIsVoiceMode(true); // 음성 대화 모드 활성화
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then((stream) => {
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.start();
+        setIsRecording(true);
+
+        mediaRecorder.ondataavailable = async (event) => {
+          const audioBlob = event.data;
+          const formData = new FormData();
+          formData.append('audio', audioBlob, 'recording.webm');
+
+          try {
+            // 5초 동안 입력이 없으면 STT -> CLOVA X -> TTS 프로세스 시작
+            const sttResponse = await axios.post('https://reciperecom.store/api/speech-to-text', formData, {
+              headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            const userMessage = sttResponse.data.transcript;
+
+            // CLOVA X로 전송
+            const clovaResponse = await axios.post('https://reciperecom.store/api/chat', { message: userMessage });
+            const botMessage = clovaResponse.data.response || '죄송합니다. 오류가 발생했습니다.';
+
+            // 메시지 추가 및 음성 재생 (음성 대화 모드일 때만)
+            setMessages((prevMessages) => [
+              ...prevMessages,
+              { message: userMessage, direction: 'outgoing', sender: '사용자', avatar: userAvatar },
+              { message: botMessage, direction: 'incoming', sender: 'CLOVA X', avatar: clovaAvatar },
+            ]);
+            if (isVoiceMode) {
+              playVoice(botMessage);
+            }
+          } catch (error) {
+            console.error("음성 인식/응답 오류:", error);
+          } finally {
+            setIsRecording(false);
+            stream.getTracks().forEach((track) => track.stop());
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          setIsRecording(false);
+          clearTimeout(recordingTimeout);
+        };
+
+        // 5초 후 자동 녹음 중지
+        const timeoutId = setTimeout(() => mediaRecorder.stop(), 5000);
+        setRecordingTimeout(timeoutId);
+      })
+      .catch((error) => {
+        console.error("음성 녹음 오류:", error);
+        alert("마이크 권한이 필요합니다.");
+      });
+  };
+
+  // TTS 재생 함수
+  const playVoice = async (text) => {
+    try {
+      const response = await axios.post('https://reciperecom.store/api/play_voice', { text }, {
+        responseType: 'arraybuffer',
+      });
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const audioBuffer = await audioContext.decodeAudioData(response.data);
+      const source = audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(audioContext.destination);
+      source.start();
+    } catch (error) {
+      console.error('Error with TTS playback:', error);
+    }
+  };
+
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar bg="dark" variant="dark" expand="lg">
         <Container>
-          <Navbar.Brand as={Link} to="/main" onClick={() => window.location.reload()}>
+          <Navbar.Brand onClick={() => navigate('/main')}>
             <img src={clovaAvatar} alt="Logo" style={{ height: '40px' }} />
           </Navbar.Brand>
           <Navbar.Toggle aria-controls="navbarNav" />
@@ -153,11 +235,7 @@ const RecommendPage = () => {
               style={{ fontSize: '1.2rem', height: 'calc(100vh - 240px)' }}
             >
               {messages.map((msg, index) => (
-                <Message
-                  key={index}
-                  model={msg}
-                  avatarPosition="tl"
-                >
+                <Message key={index} model={msg} avatarPosition="tl">
                   <Avatar src={msg.avatar} name={msg.sender} size="md" />
                 </Message>
               ))}
@@ -170,10 +248,15 @@ const RecommendPage = () => {
             />
           </ChatContainer>
         </MainContainer>
-        
-        <Button variant="primary" onClick={handleEndConversation} className="mt-3">
-          대화 요약 저장
-        </Button>
+
+        <div className="d-flex mt-3">
+          <Button variant="primary" onClick={handleEndConversation}>
+            대화 요약 저장
+          </Button>
+          <Button variant="secondary" onClick={startVoiceProcess} className="ms-2">
+            {isRecording ? '녹음 중...' : '음성 대화 시작'}
+          </Button>
+        </div>
       </Container>
 
       {/* Confirmation Modal */}
