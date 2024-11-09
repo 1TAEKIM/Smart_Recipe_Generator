@@ -10,6 +10,10 @@ import os
 import re
 from io import BytesIO
 from datetime import datetime
+import subprocess
+from werkzeug.utils import secure_filename
+import urllib.request
+
 
 
 # 환경 변수 로드
@@ -35,11 +39,14 @@ class CompletionExecutor:
         }
     
         response = requests.post(self._host + '/testapp/v1/chat-completions/HCX-DASH-001', headers=headers, json=completion_request)
-        
+         # Collect each line of the streamed response
+        # 버퍼를 초기화하여 응답 데이터를 쌓기
+        # 바로 JSON 파싱 시도
         try:
             response_data = response.json()
             return response_data
         except json.JSONDecodeError:
+            # JSON 파싱 실패 시 에러 메시지 반환
             return {"error": "Failed to parse JSON from response", "raw_data": response.text}
         
         
@@ -62,9 +69,9 @@ class SummaryExecutor:
                 "content": content  # 요약할 텍스트
             },
             "option": {
-                "language": "ko",       # 요약할 언어 설정 
-                "model": "general",     # 요약 모델 설정 
-                "tone": 2,              # 요약 톤 설정 
+                "language": "ko",       # 요약할 언어 설정 (한국어: ko)
+                "model": "general",     # 요약 모델 설정 (일반 텍스트: general)
+                "tone": 2,              # 요약 톤 설정 (예: 2는 간결한 톤)
                 "summaryCount": 1       # 요약할 문장 수
             }
         }
@@ -75,12 +82,12 @@ class SummaryExecutor:
             json=payload
         )
 
-        
+        # 응답 코드 확인 및 요약 텍스트 반환
         if response.status_code == 200:
             return response.json().get("summary", "요약 실패")
         else:
-        
-            # print(f"Error: {response.status_code}, Response: {response.text}")
+            # 에러 코드와 에러 메시지 출력
+            print(f"Error: {response.status_code}, Response: {response.text}")
             return f"Error: {response.status_code}"
         
 
@@ -97,9 +104,7 @@ def register_routes(app):
 
         # 해당 유저네임이 이미 존재하는지 확인
         existing_user = User.query.filter_by(username=username).first()
-        
-        # None이면 사용 가능
-        is_available = existing_user is None
+        is_available = existing_user is None  # None이면 사용 가능
 
         return jsonify({'available': is_available}), 200
 
@@ -139,34 +144,35 @@ def register_routes(app):
         username = data.get('username')
         email = data.get('email')
         password = data.get('password')
-        favorite_food = data.get('favoriteFood') or None  
-        spice_level = data.get('spiceLevel') or None 
+        favorite_food = data.get('favoriteFood') or None  # 선택 사항이 비워져 있을 경우 None으로 저장
+        spice_level = data.get('spiceLevel') or None     # 선택 사항이 비워져 있을 경우 None으로 저장
+        birthdate = data.get('birthdate') or None
 
-        # print(f"Received data: username={username}, email={email}, password={password}, favorite_food={favorite_food}, spice_level={spice_level}")
+        print(f"Received data: username={username}, email={email}, password={password}, favorite_food={favorite_food}, spice_level={spice_level}")
 
         if not username or not email or not password:
-            # print("Error: Required fields missing")
+            print("Error: Required fields missing")
             return jsonify({'message': 'Username, email, and password are required'}), 400
 
         # 사용자 이름 중복 확인
         existing_user = User.query.filter_by(username=username).first()
         if existing_user:
-            # print("Error: User with the same username already exists")
+            print("Error: User with the same username already exists")
             return jsonify({'message': '동일한 유저가 존재합니다'}), 409
 
         # 이메일 중복 확인 추가
         existing_email = User.query.filter_by(email=email).first()
         if existing_email:
-            # print("Error: User with the same email already exists")
+            print("Error: User with the same email already exists")
             return jsonify({'message': '이미 사용 중인 이메일입니다'}), 409
 
         # 비밀번호 유효성 검사
         password_error = validate_password(password)
         if password_error:
-            # print(f"Password validation error: {password_error}")
+            print(f"Password validation error: {password_error}")
             return jsonify({'message': password_error}), 400
 
-        new_user = User(username=username, email=email, favorite_food=favorite_food, spice_level=spice_level)
+        new_user = User(username=username, email=email, favorite_food=favorite_food, spice_level=spice_level, birthdate=birthdate)
         new_user.set_password(password)
         db.session.add(new_user)
 
@@ -214,29 +220,34 @@ def register_routes(app):
         session.pop('username', None)
         return jsonify({'message': 'Logged out successfully'}), 200
 
-    
-    # Get recipe data with pagination and category filter
+
     @app.route('/api/recipes', methods=['GET'])
     def get_recipes():
         page = int(request.args.get('page', 1))
-        size = int(request.args.get('limit', 12))  # 페이지당 항목 수
-        category = request.args.get('category', None)
+        size = int(request.args.get('limit', 12))
+        main_category = request.args.get('category', None)
+        sub_category = request.args.get('subCategory', None)
         offset = (page - 1) * size
 
         query = Recipe.query
-        if category:
-            query = query.filter_by(rcp_pat2=category)  # 선택한 카테고리로 필터링
+        if main_category:
+            query = query.filter_by(category=main_category)
+        if sub_category:
+            query = query.filter_by(rcp_pat2=sub_category)  # 서브 카테고리 필터링
 
+        # recipes = query.offset(offset).limit(size).all()
         recipes = query.with_entities(Recipe.id, Recipe.rcp_nm, Recipe.att_file_no_main).offset(offset).limit(size).all()
+
         total_items = query.count()
 
-        
         result = {
-        "recipes": [{"id": r.id, "rcp_nm": r.rcp_nm, "att_file_no_main": r.att_file_no_main} for r in recipes],
-        "total_pages": (total_items + size - 1) // size
+            "recipes": [{"id": r.id, "rcp_nm": r.rcp_nm, "att_file_no_main": r.att_file_no_main} for r in recipes],
+            "total_pages": (total_items + size - 1) // size
         }
 
         return jsonify(result)
+
+
 
 
     @app.route('/api/recipe/<int:recipe_id>', methods=['GET'])
@@ -280,6 +291,9 @@ def register_routes(app):
         
         return jsonify(result)
 
+
+
+        
     
 
     # Clova X Chat Route
@@ -288,6 +302,25 @@ def register_routes(app):
         data = request.get_json()
         user_message = data.get('message')
 
+        
+        username = data.get('username')  # Get the username from the request
+
+    # Retrieve user information based on username
+        user = User.query.filter_by(username=username).first()
+        
+        # 사용자 정보 기반의 추가 메시지 설정
+        user_info = ""
+        if user:
+            if user.favorite_food:
+                user_info += f"사용자의 선호 음식은 {user.favorite_food}입니다. "
+            if user.spice_level:
+                user_info += f"사용자의 선호 매운맛 레벨은 {user.spice_level}입니다. "
+            if user.birthdate:
+                age = datetime.now().year - user.birthdate.year
+                user_info += f"사용자의 나이는 {age}세입니다. "
+        
+        
+        
         # Setup Clova X Executor
         completion_executor = CompletionExecutor(
             host='https://clovastudio.stream.ntruss.com',
@@ -300,11 +333,10 @@ def register_routes(app):
             {
                 "role": "system",
                 "content": "- 사용자가 가지고 있는 재료를 입력 받는다.\n\
-                    - 선호하는 음식 장르, MBTI 등을 고려하여 최소 4개이상의 메뉴를 추천해준다.\n\
+                    - 선호하는 음식 장르, 맵기 정도 등을 고려하여 최소 4개이상의 메뉴를 추천해준다.\n\
                     - 사용자가 메뉴를 선택하면 전체 조리과정과 소요시간을 알려준다.\n\
-                    - 사용자가 단계별로 설명을 원하는 판단이 들면 다음을 따른다.\n\
-                    - 사용자가 특정부분까지 완료되었다고 판단이 들면 확인 후 다음 과정부터 알려준다.\n\
-                    - 과정마다 상세히 알려준다. 소요시간이 길면 뉴스, 날씨, 응원 등을 해주며 말을 걸어준다.\n\n"
+                    - 과정마다 상세히 알려준다.\n"
+                    + user_info
             },
             {
                 "role": "user",
@@ -341,7 +373,8 @@ def register_routes(app):
         except Exception as e:
             print("Error in clova_x_chat:", e)
             return jsonify({"error": "An error occurred while processing your request."}), 500
-            
+    
+
 
 
     @app.route('/api/main', methods=['GET'])
@@ -369,11 +402,13 @@ def register_routes(app):
             data = request.get_json()
             user.favorite_food = data.get('favoriteFood', user.favorite_food)
             user.spice_level = data.get('spiceLevel', user.spice_level)
+            user.birthdate = data.get('birthdate', user.birthdate)  # 생년월일 업데이트 추가
 
             db.session.commit()
-            return jsonify({'message': 'User information updated successfully'}), 200
+            return jsonify({'message': '수정되었습니다:)'}), 200
         else:
             return jsonify({'message': 'User not found'}), 404
+
 
 
     @app.route('/api/change-password', methods=['POST'])
@@ -391,6 +426,7 @@ def register_routes(app):
             return jsonify({'message': 'Password changed successfully'}), 200
         else:
             return jsonify({'message': 'User not found'}), 404
+
 
 
 
@@ -453,3 +489,151 @@ def register_routes(app):
         db.session.delete(conversation)
         db.session.commit()
         return jsonify({'message': 'Conversation deleted successfully'}), 200
+
+
+
+################################################################################################################
+
+    # 네이버 음성 인식 API 호출 엔드포인트
+    @app.route('/api/speech-to-text', methods=['POST'])
+    def speech_to_text():
+        if 'audio' not in request.files:
+            return jsonify({"error": "No audio file provided"}), 400
+
+        audio_file = request.files['audio']
+        original_path = 'uploaded_audio.webm'
+        converted_path = 'converted_audio.mp3'
+
+        # 업로드된 파일을 저장
+        audio_file.save(original_path)
+        print(f"Received file content type: {audio_file.content_type}")
+
+        # WebM to MP3 변환
+        try:
+            subprocess.run(
+                ['ffmpeg', '-y', '-i', original_path, '-f', 'mp3', '-ab', '192k', converted_path],
+                check=True
+            )
+            print("Audio file converted to MP3 format.")
+        except subprocess.CalledProcessError as e:
+            print("Error during audio conversion:", e)
+            return jsonify({"error": "Audio conversion failed"}), 500
+        
+        # finally:
+        # # 파일 삭제
+        #     if os.path.exists(original_path):
+        #         os.remove(original_path)
+        #         print(f"Deleted temporary file: {original_path}")
+        #     if os.path.exists(converted_path):
+        #         os.remove(converted_path)
+        #         print(f"Deleted converted file: {converted_path}")
+            
+        
+        
+
+        # 네이버 API로 변환된 MP3 파일 전송
+        url = "https://naveropenapi.apigw.ntruss.com/recog/v1/stt?lang=Kor"  # 언어 코드 추가
+        headers = {
+            "X-NCP-APIGW-API-KEY-ID": os.getenv("NAVER_CLIENT_ID"),
+            "X-NCP-APIGW-API-KEY": os.getenv("NAVER_CLIENT_SECRET"),
+            "Content-Type": "application/octet-stream",
+        }
+
+        with open(converted_path, 'rb') as mp3_file:
+            response = requests.post(url, headers=headers, data=mp3_file)
+
+        if response.status_code == 200:
+            result_text = response.json().get("text", "")
+            return jsonify({"transcript": result_text})
+        else:
+            print("Error during STT process:", response.text)
+            return jsonify({
+                "error": "Failed to process audio", 
+                "details": response.text,
+                "status_code": response.status_code
+            }), response.status_code
+    
+        
+    @app.route('/api/play_voice', methods=['POST'])
+    def play_voice():
+        data = request.get_json()
+        text = data.get('text', '')
+
+        if not text:
+            return jsonify({"error": "No text provided"}), 400
+
+        url = "https://naveropenapi.apigw.ntruss.com/tts-premium/v1/tts"
+        headers = {
+            "X-NCP-APIGW-API-KEY-ID": os.getenv("NAVER_CLIENT_ID"),
+            "X-NCP-APIGW-API-KEY": os.getenv("NAVER_CLIENT_SECRET"),
+            "Content-Type": "application/x-www-form-urlencoded",
+        }
+        payload = {
+            "speaker": "jinho",  # TTS 목소리 설정 (mijin: 여성, jinho: 남성 등)
+            "speed": "2",        # 말하기 속도 조절 (-5 ~ 5)
+            "text": text,
+        }
+        try:
+            response = requests.post(url, headers=headers, data=payload)
+            response.raise_for_status()  # 200 OK가 아닐 경우 예외 발생
+            audio_content = response.content
+
+            # 생성된 음성 파일을 반환
+            return send_file(BytesIO(audio_content), mimetype="audio/mpeg")
+        
+        except requests.exceptions.RequestException as e:
+            print(f"TTS API Error: {e}")
+            return jsonify({"error": "Failed to fetch TTS audio"}), 500
+        
+        
+        
+####################################################################################
+
+# NAVER Trend 
+
+    def make_api_request(url, headers, body):
+        request = urllib.request.Request(url, data=body.encode("utf-8"))
+        for key, value in headers.items():
+            request.add_header(key, value)
+        try:
+            with urllib.request.urlopen(request) as response:
+                return json.loads(response.read().decode('utf-8'))
+        except Exception as e:
+            print("Exception:", str(e))
+            return {"error": str(e)}
+
+    def get_search_trend(keyword_groups, start_date="2024-10-01", end_date="2024-11-01", time_unit="month", ages=None, gender=None):
+        url = "https://naveropenapi.apigw.ntruss.com/datalab/v1/search"
+        headers = {
+            "X-NCP-APIGW-API-KEY-ID": os.getenv("NAVER_TREND_CLIENT_ID"),
+            "X-NCP-APIGW-API-KEY": os.getenv("NAVER_TREND_CLIENT_SECRET"),
+            "Content-Type": "application/json"
+        }
+        body = json.dumps({
+            "startDate": start_date,
+            "endDate": end_date,
+            "timeUnit": time_unit,
+            "keywordGroups": keyword_groups,
+            "gender": gender or "",
+            "ages": ages or []
+        })
+        return make_api_request(url, headers, body)
+
+    def parse_keywords(input_text):
+        keywords = [kw.strip() for kw in input_text.split(',')]
+        keyword_groups = [{"groupName": kw, "keywords": [kw]} for kw in keywords]
+        return keyword_groups
+
+    @app.route("/api/search-trend", methods=["POST"])
+    def search_trend():
+        data = request.get_json()
+        keywords = data.get("keywords", "")
+        start_date = data.get("start_date", (datetime.today() - timedelta(days=30)).strftime("%Y-%m-%d"))
+        end_date = data.get("end_date", datetime.today().strftime("%Y-%m-%d"))
+        time_unit = data.get("time_unit", "month")
+        ages = data.get("ages", [])
+        gender = data.get("gender", "")
+
+        keyword_groups = parse_keywords(keywords)
+        response_data = get_search_trend(keyword_groups, start_date, end_date, time_unit, ages, gender)
+        return jsonify(response_data)
