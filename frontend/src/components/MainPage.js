@@ -1,10 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Spinner, Button, Card, Pagination, Navbar, Container, Row, Col } from 'react-bootstrap';
+import { Spinner, Button, Card, Pagination, Navbar, Container, Row, Col, ButtonGroup } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import logo from '../assets/images/logo.png';
 
-const categories = ['반찬', '국과찌개', '후식', '일품', '밥', '기타'];
+const mainCategories = [
+    { name: '전체', value: '' },
+    { name: '한식', value: 'Korean' },
+    { name: '중식', value: 'Chinese' },
+    { name: '양식', value: 'Western' }
+];
+
+const subCategories = {
+    Korean: ['반찬', '국과찌개', '후식', '일품', '밥', '기타'],
+    Chinese: ['튀김', '면류', '전골', '기타'],
+    Western: ['샐러드', '스프', '메인', '디저트', '기타']
+};
 
 const MainPage = () => {
     const [username, setUsername] = useState(null);
@@ -12,15 +23,15 @@ const MainPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [isLoading, setIsLoading] = useState(true);
-    const [selectedCategory, setSelectedCategory] = useState('');
+    const [selectedMainCategory, setSelectedMainCategory] = useState('');
+    const [selectedSubCategory, setSelectedSubCategory] = useState('');
     const itemsPerPage = 12;
     const pagesToShow = 6;
     const navigate = useNavigate();
 
-    // 사용자 데이터 가져오기
     const fetchUserData = async () => {
         try {
-            const response = await fetch('http://reciperecom.store/api/main', {
+            const response = await fetch('https://reciperecom.store/api/main', {
                 method: 'GET',
                 credentials: 'include',
             });
@@ -31,33 +42,26 @@ const MainPage = () => {
         }
     };
 
-    // 레시피 데이터 가져오기
     const fetchRecipes = useCallback(async () => {
         setIsLoading(true);
         try {
-            const response = await fetch(`http://reciperecom.store/api/recipes?page=${currentPage}&limit=${itemsPerPage}&category=${selectedCategory}`);
+            const response = await fetch(`https://reciperecom.store/api/recipes?page=${currentPage}&limit=${itemsPerPage}&category=${selectedMainCategory}&subCategory=${selectedSubCategory}`);
             const data = await response.json();
-            setRecipes(data.recipes.sort(() => 0.5 - Math.random())); // 데이터 셔플링
+            setRecipes(data.recipes);
             setTotalPages(data.total_pages);
         } catch (error) {
             console.error('Error fetching recipes:', error);
         }
         setIsLoading(false);
-    }, [currentPage, selectedCategory]);
+    }, [currentPage, selectedMainCategory, selectedSubCategory]);
 
-    // 페이지 로드 시 사용자 데이터 가져오기
     useEffect(() => {
         fetchUserData();
-    }, []);
-
-    // 페이지 번호나 카테고리가 변경될 때만 레시피 데이터를 가져오기
-    useEffect(() => {
         fetchRecipes();
     }, [fetchRecipes]);
 
-    // 로그아웃 기능
     const handleLogout = async () => {
-        const response = await fetch('http://reciperecom.store/api/logout', {
+        const response = await fetch('https://reciperecom.store/api/logout', {
             method: 'POST',
             credentials: 'include',
         });
@@ -67,16 +71,19 @@ const MainPage = () => {
         }
     };
 
-    // 카테고리 변경 처리
-    const handleCategoryChange = (category) => {
-        setSelectedCategory(category);
-        setCurrentPage(1); // 카테고리를 변경하면 첫 페이지로 이동
+    const handleMainCategoryChange = (category) => {
+        setSelectedMainCategory(category);
+        setSelectedSubCategory(''); // Reset subcategory when main category changes
+        setCurrentPage(1);
     };
 
-    // 페이지 변경 처리
+    const handleSubCategoryChange = (subCategory) => {
+        setSelectedSubCategory(subCategory);
+        setCurrentPage(1);
+    };
+
     const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
 
-    // Pagination 구성
     const getPaginationItems = () => {
         const items = [];
         const start = Math.floor((currentPage - 1) / pagesToShow) * pagesToShow + 1;
@@ -107,7 +114,7 @@ const MainPage = () => {
                         {username ? (
                             <>
                                 <Button as={Link} to="/mypage" variant="outline-light" className="me-2">마이 페이지</Button>
-                                <Button as={Link} to="/recommend" variant="outline-light" className="me-2">메뉴 추천</Button>
+                                <Button as={Link} to="/recommend" variant="outline-light" className="me-2">AI 메뉴 추천</Button>
                                 <Button variant="outline-light" onClick={handleLogout}>로그아웃</Button>
                             </>
                         ) : (
@@ -120,24 +127,52 @@ const MainPage = () => {
                 </Container>
             </Navbar>
 
+            <Container className="d-flex justify-content-center my-3">
+                <ButtonGroup aria-label="Main categories">
+                    {mainCategories.map((mainCategory) => (
+                        <Button
+                            key={mainCategory.value}
+                            variant={selectedMainCategory === mainCategory.value ? 'primary' : 'outline-primary'}
+                            className="mx-1 px-4"
+                            onClick={() => handleMainCategoryChange(mainCategory.value)}
+                            style={{
+                                fontWeight: selectedMainCategory === mainCategory.value ? 'bold' : 'normal',
+                                borderRadius: '20px',
+                                transition: '0.3s',
+                            }}
+                        >
+                            {mainCategory.name}
+                        </Button>
+                    ))}
+                </ButtonGroup>
+            </Container>
+
             <Container className="my-4 text-center">
                 <h1 className="mb-4">
                     <span style={{ fontSize: '3rem', color: '#FF6347' }}>레</span>시피{' '}
                     <span style={{ fontSize: '3rem', color: '#FF6347' }}>알</span>려줘?
                 </h1>
 
-                <div className="d-flex justify-content-center mb-4">
-                    {categories.map((category) => (
-                        <Button
-                            key={category}
-                            variant={selectedCategory === category ? 'primary' : 'outline-primary'}
-                            className="mx-1"
-                            onClick={() => handleCategoryChange(category)}
-                        >
-                            {category}
-                        </Button>
-                    ))}
-                </div>
+                {selectedMainCategory && (
+                    <div className="d-flex justify-content-center mb-4">
+                        {(subCategories[selectedMainCategory] || []).map((subCategory) => (
+                            <Button
+                                key={subCategory}
+                                variant={selectedSubCategory === subCategory ? 'primary' : 'outline-primary'}
+                                className="mx-1"
+                                onClick={() => handleSubCategoryChange(subCategory)}
+                                style={{
+                                    fontWeight: selectedSubCategory === subCategory ? 'bold' : 'normal',
+                                    transition: '0.3s',
+                                    padding: '0.5rem 1.5rem',
+                                    borderRadius: '15px'
+                                }}
+                            >
+                                {subCategory}
+                            </Button>
+                        ))}
+                    </div>
+                )}
 
                 {isLoading ? (
                     <div className="text-center my-5">
