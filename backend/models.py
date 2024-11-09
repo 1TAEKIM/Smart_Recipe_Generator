@@ -8,6 +8,8 @@ class User(db.Model):
     password = db.Column(db.String(120), nullable=False)
     favorite_food = db.Column(db.String(50), nullable=True)  
     spice_level = db.Column(db.Integer, nullable=True)
+    grade = db.Column(db.String(50), default='basic', nullable=False)
+    birthdate = db.Column(db.Date, nullable=True)
 
     def set_password(self, password):
         self.password = bcrypt.generate_password_hash(password).decode('utf-8')
@@ -47,6 +49,7 @@ class Recipe(db.Model):
     att_file_no_mk = db.Column(db.Text, nullable=True)  # 만드는 방법 이미지 URL
     rcp_parts_dtls = db.Column(db.Text, nullable=True)  # 재료 정보
     rcp_na_tip = db.Column(db.Text, nullable=True)  # 요리 팁
+    category = db.Column(db.String(50), nullable=True)
 
     # 20단계 조리 과정과 이미지
     manual01 = db.Column(db.Text, nullable=True)
