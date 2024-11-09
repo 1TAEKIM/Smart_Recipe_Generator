@@ -12,6 +12,7 @@ const Register = () => {
     const [favoriteFood, setFavoriteFood] = useState('');
     const [customFood, setCustomFood] = useState('');
     const [spiceLevel, setSpiceLevel] = useState('');
+    const [birthdate, setBirthdate] = useState(''); // 생년월일 추가
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [isUsernameAvailable, setIsUsernameAvailable] = useState(null);
@@ -28,7 +29,7 @@ const Register = () => {
     const checkUsernameAvailability = async () => {
         if (username) {
             try {
-                const response = await axios.get(`http://reciperecom.store/api/check-username?username=${username}`);
+                const response = await axios.get(`https://reciperecom.store/api/check-username?username=${username}`);
                 setIsUsernameAvailable(response.data.available);
             } catch (error) {
                 console.error('Error checking username availability:', error);
@@ -50,12 +51,13 @@ const Register = () => {
         e.preventDefault();
 
         try {
-            const response = await axios.post('http://reciperecom.store/api/register', {
+            const response = await axios.post('https://reciperecom.store/api/register', {
                 username,
                 email,
                 password,
                 favoriteFood: favoriteFood === '기타' ? customFood : favoriteFood,
-                spiceLevel
+                spiceLevel,
+                birthdate  // 생년월일 추가
             }, {
                 headers: { 'Content-Type': 'application/json' },
                 withCredentials: true
@@ -85,7 +87,6 @@ const Register = () => {
                     </Navbar.Collapse>
                 </Container>
             </Navbar>
-
 
             <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
                 <Card style={{ width: '100%', maxWidth: '500px' }} className="p-4 shadow-sm">
@@ -136,6 +137,16 @@ const Register = () => {
                                     <div style={{ color: passwordValidations.number ? 'green' : 'red' }}>숫자 하나 이상 포함</div>
                                     <div style={{ color: passwordValidations.specialChar ? 'green' : 'red' }}>특수문자 하나 이상 포함 (!@#$%^&*)</div>
                                 </Form.Text>
+                            </Form.Group>
+
+                            <Form.Group controlId="birthdate" className="mb-3">
+                                <Form.Label>생년월일 (선택 사항)</Form.Label>
+                                <Form.Control
+                                    type="date"
+                                    placeholder="생년월일을 선택하세요"
+                                    value={birthdate}
+                                    onChange={(e) => setBirthdate(e.target.value)}
+                                />
                             </Form.Group>
 
                             <Form.Group controlId="favoriteFood" className="mb-3">
