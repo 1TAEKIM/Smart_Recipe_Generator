@@ -16,6 +16,7 @@ import { Navbar, Container, Button, Modal } from 'react-bootstrap';
 
 import userAvatar from '../assets/images/logo.png';
 import clovaAvatar from '../assets/images/logo.png';
+import SearchTrend from './SearchTrend';  // SearchTrend 컴포넌트 임포트
 
 const RecommendPage = () => {
   const [username, setUsername] = useState(null);
@@ -27,6 +28,8 @@ const RecommendPage = () => {
   const [isRecording, setIsRecording] = useState(false); // Track recording state
   const [recordingTimeout, setRecordingTimeout] = useState(null); // Timeout to handle 5 seconds of silence
   const [isVoiceMode, setIsVoiceMode] = useState(false); // Track if voice mode is enabled
+  const [showSearchTrend, setShowSearchTrend] = useState(false); // 검색어 트렌드 조회 모달 상태
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -42,7 +45,7 @@ const RecommendPage = () => {
 
   const fetchUserData = async () => {
     try {
-      const response = await axios.get('http://reciperecom.store/api/main', {
+      const response = await axios.get('https://reciperecom.store/api/main', {
         withCredentials: true,
       });
       if (response.data.username) {
@@ -55,7 +58,7 @@ const RecommendPage = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post('http://reciperecom.store/api/logout', {}, { withCredentials: true });
+      await axios.post('https://reciperecom.store/api/logout', {}, { withCredentials: true });
       setUsername(null);
       navigate('/main');
     } catch (error) {
@@ -79,6 +82,7 @@ const RecommendPage = () => {
     try {
       const response = await axios.post('https://reciperecom.store/api/chat', {
         message: messageText,
+        username: username,
       });
       const botMessage = {
         message: response.data.response || '죄송합니다. 오류가 발생했습니다.',
@@ -126,12 +130,11 @@ const RecommendPage = () => {
     navigate('/mypage');
   };
 
-  // 음성 대화 버튼 클릭 시 녹음 시작 및 5초 후 STT 처리
   const startVoiceProcess = () => {
     setIsVoiceMode(true); // 음성 대화 모드 활성화
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then((stream) => {
-        const mediaRecorder = new MediaRecorder(stream);
+        const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm; codecs=opus" });
         mediaRecorder.start();
         setIsRecording(true);
 
@@ -141,17 +144,14 @@ const RecommendPage = () => {
           formData.append('audio', audioBlob, 'recording.webm');
 
           try {
-            // 5초 동안 입력이 없으면 STT -> CLOVA X -> TTS 프로세스 시작
             const sttResponse = await axios.post('https://reciperecom.store/api/speech-to-text', formData, {
               headers: { 'Content-Type': 'multipart/form-data' },
             });
-            const userMessage = sttResponse.data.transcript;
 
-            // CLOVA X로 전송
+            const userMessage = sttResponse.data.transcript || "음성 인식을 할 수 없습니다.";
             const clovaResponse = await axios.post('https://reciperecom.store/api/chat', { message: userMessage });
             const botMessage = clovaResponse.data.response || '죄송합니다. 오류가 발생했습니다.';
 
-            // 메시지 추가 및 음성 재생 (음성 대화 모드일 때만)
             setMessages((prevMessages) => [
               ...prevMessages,
               { message: userMessage, direction: 'outgoing', sender: '사용자', avatar: userAvatar },
@@ -162,6 +162,7 @@ const RecommendPage = () => {
             }
           } catch (error) {
             console.error("음성 인식/응답 오류:", error);
+            alert("음성 인식에 실패했습니다. 다시 시도해주세요.");
           } finally {
             setIsRecording(false);
             stream.getTracks().forEach((track) => track.stop());
@@ -173,7 +174,6 @@ const RecommendPage = () => {
           clearTimeout(recordingTimeout);
         };
 
-        // 5초 후 자동 녹음 중지
         const timeoutId = setTimeout(() => mediaRecorder.stop(), 5000);
         setRecordingTimeout(timeoutId);
       })
@@ -183,7 +183,6 @@ const RecommendPage = () => {
       });
   };
 
-  // TTS 재생 함수
   const playVoice = async (text) => {
     try {
       const response = await axios.post('https://reciperecom.store/api/play_voice', { text }, {
@@ -241,7 +240,7 @@ const RecommendPage = () => {
               ))}
             </MessageList>
             <MessageInput
-              placeholder="메시지를 입력하세요..."
+              placeholder="가지고 계신 재료를 입력해주세요..."
               onSend={handleSend}
               attachButton={false}
               style={{ fontSize: '1.2rem' }}
@@ -256,8 +255,14 @@ const RecommendPage = () => {
           <Button variant="secondary" onClick={startVoiceProcess} className="ms-2">
             {isRecording ? '녹음 중...' : '음성 대화 시작'}
           </Button>
+          {/* <Button variant="info" onClick={() => setShowSearchTrend(true)} className="ms-2">
+            검색어 트렌드 조회
+          </Button> */}
         </div>
       </Container>
+
+      {/* SearchTrend 모달 컴포넌트 */}
+      <SearchTrend show={showSearchTrend} handleClose={() => setShowSearchTrend(false)} />
 
       {/* Confirmation Modal */}
       <Modal show={showModal} onHide={handleModalClose} centered>
