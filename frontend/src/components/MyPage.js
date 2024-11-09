@@ -11,6 +11,7 @@ const MyPage = () => {
         email: '',
         favoriteFood: '',
         spiceLevel: '',
+        birthdate: '',  // 생년월일 추가
         newPassword: ''
     });
     const [conversations, setConversations] = useState([]);
@@ -21,7 +22,7 @@ const MyPage = () => {
     useEffect(() => {
         const fetchUserInfo = async () => {
             try {
-                const response = await axios.get('http://reciperecom.store/api/main', { withCredentials: true });
+                const response = await axios.get('https://reciperecom.store/api/main', { withCredentials: true });
                 setUserInfo(response.data);
             } catch (error) {
                 console.error('Error fetching user info:', error);
@@ -31,7 +32,7 @@ const MyPage = () => {
 
         const getConversations = async () => {
             try {
-                const response = await axios.get('http://reciperecom.store/api/conversations', { withCredentials: true });
+                const response = await axios.get('https://reciperecom.store/api/conversations', { withCredentials: true });
                 setConversations(response.data.conversations);
             } catch (error) {
                 console.error('Error fetching conversations:', error);
@@ -50,9 +51,10 @@ const MyPage = () => {
     const handleUpdate = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.put('http://reciperecom.store/api/update-user', {
+            const response = await axios.put('https://reciperecom.store/api/update-user', {
                 favoriteFood: userInfo.favoriteFood,
-                spiceLevel: userInfo.spiceLevel
+                spiceLevel: userInfo.spiceLevel,
+                birthdate: userInfo.birthdate  // 생년월일 추가
             }, { withCredentials: true });
             setSuccess(response.data.message);
             setError('');
@@ -69,7 +71,7 @@ const MyPage = () => {
             return;
         }
         try {
-            const response = await axios.post('http://reciperecom.store/api/change-password', {
+            const response = await axios.post('https://reciperecom.store/api/change-password', {
                 newPassword: userInfo.newPassword
             }, { withCredentials: true });
             setSuccess(response.data.message);
@@ -82,7 +84,7 @@ const MyPage = () => {
 
     const handleLogout = async () => {
         try {
-            await axios.post('http://reciperecom.store/api/logout', {}, { withCredentials: true });
+            await axios.post('https://reciperecom.store/api/logout', {}, { withCredentials: true });
             navigate('/main');
         } catch (error) {
             console.error('Error logging out:', error);
@@ -91,7 +93,7 @@ const MyPage = () => {
 
     const handleDeleteConversation = async (id) => {
         try {
-            await axios.delete(`http://reciperecom.store/api/conversation/${id}`, { withCredentials: true });
+            await axios.delete(`https://reciperecom.store/api/conversation/${id}`, { withCredentials: true });
             setConversations(conversations.filter((conv) => conv.id !== id));
         } catch (error) {
             console.error('Error deleting conversation:', error);
@@ -112,8 +114,7 @@ const MyPage = () => {
                         </Navbar.Text>
                         {userInfo.username ? (
                             <>
-                        
-                                <Button as={Link} to="/recommend" variant="outline-light" className="me-2">메뉴 추천</Button>
+                                <Button as={Link} to="/recommend" variant="outline-light" className="me-2">AI 메뉴 추천</Button>
                                 <Button variant="outline-light" onClick={handleLogout}>로그아웃</Button>
                             </>
                         ) : (
@@ -171,6 +172,15 @@ const MyPage = () => {
                                     <option value="4">4</option>
                                     <option value="5">5</option>
                                 </Form.Select>
+                            </Form.Group>
+                            <Form.Group className="mb-3">
+                                <Form.Label>생년월일</Form.Label>
+                                <Form.Control
+                                    type="date"
+                                    name="birthdate"
+                                    value={userInfo.birthdate || ''}
+                                    onChange={handleInputChange}
+                                />
                             </Form.Group>
                             <Button variant="primary" type="submit" className="w-100">정보 수정</Button>
                         </Form>
