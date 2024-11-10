@@ -607,7 +607,9 @@ def register_routes(app):
         headers = {
             "X-NCP-APIGW-API-KEY-ID": os.getenv("NAVER_TREND_CLIENT_ID"),
             "X-NCP-APIGW-API-KEY": os.getenv("NAVER_TREND_CLIENT_SECRET"),
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache",        # 캐시 비활성화
+            "Pragma": "no-cache"                # 추가적인 캐시 비활성화
         }
         body = json.dumps({
             "startDate": start_date,
