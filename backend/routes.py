@@ -511,7 +511,7 @@ def register_routes(app):
         # WebM to MP3 변환
         try:
             subprocess.run(
-                ['ffmpeg', '-y', '-i', original_path, '-f', 'mp3', '-ab', '192k', converted_path],
+                ['/usr/bin/ffmpeg', '-y', '-i', original_path, '-f', 'mp3', '-ab', '192k', converted_path],
                 check=True
             )
             print("Audio file converted to MP3 format.")
